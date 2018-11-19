@@ -17,20 +17,20 @@ import de.hpi.octopus.actors.Worker.WorkMessage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-public class Profiler extends AbstractActor {
+public class Master extends AbstractActor {
 
 	////////////////////////
 	// Actor Construction //
 	////////////////////////
 	
-	public static final String DEFAULT_NAME = "profiler";
+	public static final String DEFAULT_NAME = "master";
 
 	public static Props props() {
-		return Props.create(Profiler.class);
+		return Props.create(Master.class);
 	}
 
 	////////////////////
-	// Actor Messages //
+	// Actor messages //
 	////////////////////
 	
 	@Data @AllArgsConstructor
@@ -101,7 +101,7 @@ public class Profiler extends AbstractActor {
 	
 	private void handle(TaskMessage message) {
 		if (this.task != null)
-			this.log.error("The profiler actor can process only one task in its current implementation!");
+			this.log.error("The master actor can process only one task in its current implementation!");
 		
 		this.task = message;
 		this.assign(new WorkMessage(new int[0], new int[0]));

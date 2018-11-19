@@ -12,10 +12,12 @@ import akka.cluster.MemberStatus;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import de.hpi.octopus.OctopusMaster;
-import de.hpi.octopus.actors.Profiler.CompletionMessage;
-import de.hpi.octopus.actors.Profiler.RegistrationMessage;
+import de.hpi.octopus.actors.Master.CompletionMessage;
+import de.hpi.octopus.actors.Master.RegistrationMessage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+
+import de.hpi.octopus.messages.*;
 
 public class Worker extends AbstractActor {
 
@@ -30,7 +32,7 @@ public class Worker extends AbstractActor {
 	}
 
 	////////////////////
-	// Actor Messages //
+	// Actor messages //
 	////////////////////
 	
 	@Data @AllArgsConstructor @SuppressWarnings("unused")
@@ -90,7 +92,7 @@ public class Worker extends AbstractActor {
 	private void register(Member member) {
 		if (member.hasRole(OctopusMaster.MASTER_ROLE))
 			this.getContext()
-				.actorSelection(member.address() + "/user/" + Profiler.DEFAULT_NAME)
+				.actorSelection(member.address() + "/user/" + Master.DEFAULT_NAME)
 				.tell(new RegistrationMessage(), this.self());
 	}
 
@@ -122,4 +124,27 @@ public class Worker extends AbstractActor {
 		
 		return true;
 	}
+
+
+
+
+
+
+	private void handle(PwHashMessage message) {
+
+		this.log.info("done: ");
+
+		//this.sender().tell(new CompletionMessage(CompletionMessage.status.EXTENDABLE), this.self());
+	}
+
+
+
+
+
+
+
+
+
+
+
 }
