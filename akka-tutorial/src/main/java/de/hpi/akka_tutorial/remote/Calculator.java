@@ -53,8 +53,8 @@ public class Calculator {
 	}
 	
 	private static void enterInteractiveLoop(final ActorRef listener, final ActorRef master, final ActorRef shepherd) {
-		
 		// Read ranges from the console and process them
+
 		final Scanner scanner = new Scanner(System.in);
 		while (true) {
 			// Sleep to reduce mixing of log messages with the regular stdout messages.

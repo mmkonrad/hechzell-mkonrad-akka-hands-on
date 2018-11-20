@@ -16,8 +16,8 @@ public class Worker extends AbstractLoggingActor {
 
 	/**
 	 * Create the {@link Props} necessary to instantiate new {@link Worker} actors.
-	 *
 	 * @return the {@link Props}
+	 *
 	 */
 	public static Props props() {
 		return Props.create(Worker.class);
@@ -41,12 +41,12 @@ public class Worker extends AbstractLoggingActor {
 		 * @param rangeMin first number in the range to be checked as prime (inclusive)
 		 * @param rangeMax last number in the range to be checked as prime (inclusive)
 		 */
+
 		public ValidationMessage(int id, long rangeMin, long rangeMax) {
 			this.id = id;
 			this.rangeMin = rangeMin;
 			this.rangeMax = rangeMax;
 		}
-		
 		/**
 		 * For serialization/deserialization only.
 		 */
