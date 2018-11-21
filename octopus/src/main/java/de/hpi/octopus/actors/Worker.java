@@ -124,7 +124,7 @@ public class Worker extends AbstractActor {
                 String key = entry.getKey();
                 String value = entry.getValue();
 
-                System.out.println("key: " + key + " value: " + value + " i: " + i + " hash: " + hash);
+//                System.out.println("key: " + key + " value: " + value + " i: " + i + " hash: " + hash);
 
                 /**
                 try {

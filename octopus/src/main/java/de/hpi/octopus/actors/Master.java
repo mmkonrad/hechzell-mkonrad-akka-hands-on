@@ -115,7 +115,7 @@ public class Master extends AbstractActor {
     }
 
     private void handle(SecretsTaskMessage message) {
-        final int chunkSize = 100000 / this.workerRouter.routees().size();
+        final int chunkSize = 1000000 / this.workerRouter.routees().size();
         Map<String, String> hashes = message.Map;
 
         for (int i = 0; i < this.idleWorkers.size(); i++) {
@@ -123,7 +123,7 @@ public class Master extends AbstractActor {
             int currentEndNumber = currentStartNumber + chunkSize - 1;
             // Handle any remainder if this is the last worker
             if (i == this.idleWorkers.size() - 1)
-                currentEndNumber = 100000;
+                currentEndNumber = 1000000;
             System.out.println("start: " + currentStartNumber + " end: " + currentEndNumber);
             this.workerRouter.route(new Worker.SecretsSubTaskMessage(hashes, currentStartNumber, currentEndNumber), this.self());
         }
