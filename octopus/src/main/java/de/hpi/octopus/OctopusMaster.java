@@ -12,6 +12,7 @@ import de.hpi.octopus.actors.Master;
 import de.hpi.octopus.actors.Worker;
 import de.hpi.octopus.actors.listeners.ClusterListener;
 import scala.concurrent.Await;
+import scala.concurrent.Future;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class OctopusMaster extends OctopusSystem {
@@ -98,7 +98,16 @@ public class OctopusMaster extends OctopusSystem {
                     Thread.sleep(10000);
                 } catch (InterruptedException e) {
                 }
-                system.actorSelection("/user/" + Master.DEFAULT_NAME).tell(new Master.SecretsTaskMessage(secretsMap), ActorRef.noSender());
+
+                final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
+                final Future<Object> future = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.SecretsTaskMessage(secretsMap), timeout);
+                final Map result;
+                try {
+                    result = (Map) Await.result(future, timeout.duration());
+                    System.out.println(result);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
 
                 /**

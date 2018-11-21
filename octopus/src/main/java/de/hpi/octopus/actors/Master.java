@@ -13,6 +13,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.routing.RoundRobinRoutingLogic;
 import akka.routing.Router;
+import akka.util.Timeout;
 import de.hpi.octopus.actors.Worker.WorkMessage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,6 +21,7 @@ import scala.Int;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class Master extends AbstractActor {
 
@@ -28,6 +30,7 @@ public class Master extends AbstractActor {
     ////////////////////////
 
     public static final String DEFAULT_NAME = "master";
+    private ActorRef sender;
 
     public static Props props() {
         return Props.create(Master.class);
@@ -48,6 +51,8 @@ public class Master extends AbstractActor {
     **/
 
     Router workerRouter = new Router(new RoundRobinRoutingLogic());
+
+    Map<String, Integer> crackedPasswords = new HashMap<String, Integer>();
 
     ////////////////////
     // Actor messages //
@@ -114,7 +119,8 @@ public class Master extends AbstractActor {
                 .build();
     }
 
-    private void handle(SecretsTaskMessage message) {
+    private void handle(SecretsTaskMessage message) throws InterruptedException {
+        this.sender = getSender();
         final int chunkSize = 1000000 / this.workerRouter.routees().size();
         Map<String, String> hashes = message.Map;
 
@@ -131,7 +137,12 @@ public class Master extends AbstractActor {
 
 
     private void handle(SecretRevealedMessage message) {
-        System.out.println("id: " + message.Map.keySet() + " cleartext: " + message.Map.values());
+//        System.out.println("id: " + message.Map.keySet() + " cleartext: " + message.Map.values());
+        Map.Entry<String,Integer> entry = message.Map.entrySet().iterator().next();
+        this.crackedPasswords.put(entry.getKey(), entry.getValue());
+        if(this.crackedPasswords.size() >= 42){
+            this.sender.tell(this.crackedPasswords, this.sender);
+        }
     }
 
 
