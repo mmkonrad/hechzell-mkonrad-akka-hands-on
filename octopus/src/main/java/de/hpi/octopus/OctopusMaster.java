@@ -93,18 +93,36 @@ public class OctopusMaster extends OctopusSystem {
                 }
                 **/
 
-
                 try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                }
+                    Thread.sleep(5000);
+                    final Timeout timeout = new Timeout(1000, TimeUnit.SECONDS);
 
-                final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
-                final Future<Object> future = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.SecretsTaskMessage(secretsMap), timeout);
-                final Map result;
-                try {
-                    result = (Map) Await.result(future, timeout.duration());
-                    System.out.println(result);
+                    final Future<Object> secretsFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.SecretsTaskMessage(secretsMap), timeout);
+                    final Map solvedSecrets;
+                    solvedSecrets = (Map) Await.result(secretsFuture, timeout.duration());
+                    System.out.println(solvedSecrets);
+
+//                    final Future<Object> sequenceFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.SequenceTaskMessage(sequenceMap), timeout);
+//                    final Map solvedSequences;
+//                    solvedSequences = (Map) Await.result(sequenceFuture, timeout.duration());
+//                    System.out.println(solvedSequences);
+
+                    final Future<Object> linearFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.LinearTaskMessage(solvedSecrets), timeout);
+                    final Map solvedLinear;
+                    solvedLinear = (Map) Await.result(linearFuture, timeout.duration());
+                    System.out.println(solvedLinear);
+
+
+
+//                    int sum = 0;
+//                    for(int i = 1; i <=42; i++){
+//                        sum += ((int)solvedSecrets.get(Integer.toString(i))) * ((int)solvedLinear.get(Integer.toString(i)));
+//                    }
+//
+//                    System.out.println("Linear Combination sum is " + sum);
+
+
+                    
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

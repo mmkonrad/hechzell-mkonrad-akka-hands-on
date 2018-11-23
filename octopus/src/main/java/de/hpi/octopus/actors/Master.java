@@ -53,6 +53,7 @@ public class Master extends AbstractActor {
     Router workerRouter = new Router(new RoundRobinRoutingLogic());
 
     Map<String, Integer> crackedPasswords = new HashMap<String, Integer>();
+    Map<String, String> sequences = new HashMap<String, String>();
 
     ////////////////////
     // Actor messages //
@@ -90,6 +91,30 @@ public class Master extends AbstractActor {
         private Map<String, Integer> Map = new HashMap<String, Integer>();
     }
 
+    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    public static class SequenceTaskMessage implements Serializable {
+        private static final long serialVersionUID = -6823011111281387872L;
+        private Map<String, String> Map = new HashMap<String, String>(42);
+    }
+
+    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    public static class SequenceRevealedMessage implements Serializable {
+        private static final long serialVersionUID = -6823011111281387872L;
+        private Map<String, String> Map = new HashMap<String, String>();
+    }
+
+    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    public static class LinearTaskMessage implements Serializable {
+        private static final long serialVersionUID = -6823011111281387872L;
+        private Map<String, Integer> Map = new HashMap<String, Integer>(42);
+    }
+
+    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    public static class LinearRevealedMessage implements Serializable {
+        private static final long serialVersionUID = -6823011111281387872L;
+        private Map<String, Integer> Map = new HashMap<String, Integer>();
+    }
+
     /////////////////
     // Actor State //
     /////////////////
@@ -112,6 +137,10 @@ public class Master extends AbstractActor {
                 .match(RegistrationMessage.class, this::handle)
                 .match(SecretsTaskMessage.class, this::handle)
                 .match(SecretRevealedMessage.class, this::handle)
+                .match(SequenceTaskMessage.class, this::handle)
+                .match(SequenceRevealedMessage.class, this::handle)
+                .match(LinearTaskMessage.class, this::handle)
+                .match(LinearRevealedMessage.class, this::handle)
                 .match(Terminated.class, this::handle)
                 .match(TaskMessage.class, this::handle)
                 .match(CompletionMessage.class, this::handle)
@@ -121,6 +150,7 @@ public class Master extends AbstractActor {
 
     private void handle(SecretsTaskMessage message) throws InterruptedException {
         this.sender = getSender();
+        this.crackedPasswords = new HashMap<String, Integer>();
         final int chunkSize = 1000000 / this.workerRouter.routees().size();
         Map<String, String> hashes = message.Map;
 
@@ -130,7 +160,7 @@ public class Master extends AbstractActor {
             // Handle any remainder if this is the last worker
             if (i == this.idleWorkers.size() - 1)
                 currentEndNumber = 1000000;
-            System.out.println("start: " + currentStartNumber + " end: " + currentEndNumber);
+//            System.out.println("start: " + currentStartNumber + " end: " + currentEndNumber);
             this.workerRouter.route(new Worker.SecretsSubTaskMessage(hashes, currentStartNumber, currentEndNumber), this.self());
         }
     }
@@ -140,9 +170,58 @@ public class Master extends AbstractActor {
 //        System.out.println("id: " + message.Map.keySet() + " cleartext: " + message.Map.values());
         Map.Entry<String,Integer> entry = message.Map.entrySet().iterator().next();
         this.crackedPasswords.put(entry.getKey(), entry.getValue());
+//        System.out.println(this.crackedPasswords.size());
         if(this.crackedPasswords.size() >= 42){
             this.sender.tell(this.crackedPasswords, this.sender);
         }
+    }
+
+    private void handle(SequenceTaskMessage message) throws InterruptedException {
+        this.sender = getSender();
+        final int chunkSize = 42 / this.workerRouter.routees().size();
+        Map<String, String> sequences = message.Map;
+
+        for (int i = 0; i < this.idleWorkers.size(); i++) {
+            int currentStartNumber = (i * chunkSize) + 1;
+            int currentEndNumber = currentStartNumber + chunkSize - 1;
+            // Handle any remainder if this is the last worker
+            if (i == this.idleWorkers.size() - 1)
+                currentEndNumber = 42;
+//            System.out.println("start: " + currentStartNumber + " end: " + currentEndNumber);
+            this.workerRouter.route(new Worker.SequenceSubTaskMessage(sequences, currentStartNumber, currentEndNumber), this.self());
+        }
+    }
+
+    private void handle(SequenceRevealedMessage message) {
+//        System.out.println("id: " + message.Map.keySet() + " seq: " + message.Map.values());
+        Map.Entry<String,String> entry = message.Map.entrySet().iterator().next();
+        this.sequences.put(entry.getKey(), entry.getValue());
+//        System.out.println(this.sequences.size());
+        if(this.sequences.size() >= 42){
+            this.sender.tell(this.sequences, this.sender);
+        }
+    }
+
+    private void handle(LinearTaskMessage message) throws InterruptedException {
+        this.sender = getSender();
+        long maxNumber = (long) Math.pow(2, 43);
+        final long chunkSize = maxNumber / this.workerRouter.routees().size();
+        Map<String, Integer> passwords = message.Map;
+
+        for (int i = 0; i < this.idleWorkers.size(); i++) {
+            long currentStartNumber = (i * chunkSize) + 1;
+            long currentEndNumber = currentStartNumber + chunkSize - 1;
+            // Handle any remainder if this is the last worker
+            if (i == this.idleWorkers.size() - 1)
+                currentEndNumber = maxNumber;
+//            System.out.println("start: " + currentStartNumber + " end: " + currentEndNumber);
+            this.workerRouter.route(new Worker.LinearSubTaskMessage(passwords, currentStartNumber, currentEndNumber), this.self());
+        }
+    }
+
+    private void handle(LinearRevealedMessage message) {
+//        System.out.println(message.Map);
+        this.sender.tell(message.Map, this.sender);
     }
 
 

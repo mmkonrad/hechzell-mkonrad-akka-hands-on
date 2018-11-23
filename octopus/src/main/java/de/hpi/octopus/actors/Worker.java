@@ -60,6 +60,44 @@ public class Worker extends AbstractActor {
         }
     }
 
+    public static class SequenceSubTaskMessage implements Serializable {
+
+        private static final long serialVersionUID = -7467053227355130231L;
+        private Map<String, String> sequences;
+        private int start, end;
+
+        public SequenceSubTaskMessage(Map<String, String> sequences, int start, int end) {
+            this.sequences = sequences;
+            this.start = start;
+            this.end = end;
+        }
+        /**
+         * For serialization/deserialization only.
+         */
+        @SuppressWarnings("unused")
+        private SequenceSubTaskMessage() {
+        }
+    }
+
+    public static class LinearSubTaskMessage implements Serializable {
+
+        private static final long serialVersionUID = 4926542426875360288L;
+        private Map<String, Integer> passwords;
+        private long start, end;
+
+        public LinearSubTaskMessage(Map<String, Integer> passwords, long start, long end) {
+            this.passwords = passwords;
+            this.start = start;
+            this.end = end;
+        }
+        /**
+         * For serialization/deserialization only.
+         */
+        @SuppressWarnings("unused")
+        private LinearSubTaskMessage() {
+        }
+    }
+
 
     @Data @AllArgsConstructor @SuppressWarnings("unused")
     public static class WorkMessage implements Serializable {
@@ -100,6 +138,8 @@ public class Worker extends AbstractActor {
                 .match(CurrentClusterState.class, this::handle)
                 .match(MemberUp.class, this::handle)
                 .match(SecretsSubTaskMessage.class, this::handle)
+                .match(SequenceSubTaskMessage.class, this::handle)
+                .match(LinearSubTaskMessage.class, this::handle)
                 .match(WorkMessage.class, this::handle)
                 .matchAny(object -> this.log.info("Received unknown message: \"{}\"", object.toString()))
                 .build();
@@ -127,14 +167,14 @@ public class Worker extends AbstractActor {
 //                System.out.println("key: " + key + " value: " + value + " i: " + i + " hash: " + hash);
 
                 /**
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                }
-                **/
+                 try {
+                 Thread.sleep(100);
+                 } catch (InterruptedException e) {
+                 }
+                 **/
 
                 if (hash.equals(value)) {
-                    System.out.println("Match!");
+//                    System.out.println("Match!");
                     cleartext = new HashMap<String, Integer>();
                     cleartext.put(key, i);
                     this.sender().tell(new Master.SecretRevealedMessage(cleartext), this.self());
@@ -144,11 +184,90 @@ public class Worker extends AbstractActor {
         }
     }
 
+    private void handle(SequenceSubTaskMessage message) {
+        int start = message.start;
+        int end = message.end;
+
+        System.out.println("My SequenceRange: " + start + "-" + end);
+
+        Map<String, String> sequences = message.sequences;
+        Map<String, String> cleartext;
+        String id;
+        String sequence;
+        int maxSubstringLength;
+        String maxSubstringPartner;
+
+        for (int i = start; i <= end; i++) {
+            id = Integer.toString(i);
+            sequence = sequences.get(id);
+            maxSubstringLength = 0;
+            maxSubstringPartner = "";
+            int overlapSize;
+            for (Map.Entry<String,String> entry : sequences.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if(!key.equals(id)) {
+                    overlapSize = this.longestOverlap(value, sequence).length();
+                    if (overlapSize > maxSubstringLength) {
+                        maxSubstringLength = overlapSize;
+                        maxSubstringPartner = key;
+                    }
+                }
+            }
+            cleartext = new HashMap<String, String>();
+            cleartext.put(id, maxSubstringPartner);
+            this.sender().tell(new Master.SequenceRevealedMessage(cleartext), this.self());
+        }
+    }
 
 
+    private void handle(LinearSubTaskMessage message) {
+        long start = message.start;
+        long end = message.end;
 
+        System.out.println("My LinearRange: " + start + "-" + end);
 
+        Map<String, Integer> passwords = message.passwords;
 
+        Map<String, Integer> cleartext = new HashMap<String, Integer>();
+
+        for (long i = start; i <= end; i++) {
+            int[] prefixes = this.binaryFromLong(i);
+            int sum = 0;
+            int idx = 0;
+            for (Map.Entry<String, Integer> entry : passwords.entrySet()) {
+//                String key = entry.getKey();
+                sum += entry.getValue() * prefixes[idx];
+                idx ++;
+            }
+            if (sum == 0) {
+                idx = 0;
+                for (Map.Entry<String, Integer> entry : passwords.entrySet()) {
+//                String key = entry.getKey();
+                    cleartext.put(entry.getKey(), prefixes[idx]);
+                    idx ++;
+                }
+                break;
+            }
+        }
+
+        this.sender().tell(new Master.LinearRevealedMessage(cleartext), this.self());
+    }
+
+    private int[] binaryFromLong(long number){
+        String binary = Long.toBinaryString(number);
+        int[] prefixes = new int[42];
+        for (int i = 0; i < prefixes.length; i++)
+            prefixes[i] = 1;
+
+        int i = 0;
+        for (int j = binary.length() - 1; j >= 0 && i < 42; j--) {
+            if (binary.charAt(j) == '1')
+                prefixes[i] = -1;
+            i++;
+        }
+        return prefixes;
+    }
 
 
     private void handle(CurrentClusterState message) {
@@ -218,7 +337,43 @@ public class Worker extends AbstractActor {
         }
     }
 
+    private String longestOverlap(String str1, String str2) {
+        if (str1.isEmpty() || str2.isEmpty())
+            return "";
 
+        if (str1.length() > str2.length()) {
+            String temp = str1;
+            str1 = str2;
+            str2 = temp;
+        }
+
+        int[] currentRow = new int[str1.length()];
+        int[] lastRow = str2.length() > 1 ? new int[str1.length()] : null;
+        int longestSubstringLength = 0;
+        int longestSubstringStart = 0;
+
+        for (int str2Index = 0; str2Index < str2.length(); str2Index++) {
+            char str2Char = str2.charAt(str2Index);
+            for (int str1Index = 0; str1Index < str1.length(); str1Index++) {
+                int newLength;
+                if (str1.charAt(str1Index) == str2Char) {
+                    newLength = str1Index == 0 || str2Index == 0 ? 1 : lastRow[str1Index - 1] + 1;
+
+                    if (newLength > longestSubstringLength) {
+                        longestSubstringLength = newLength;
+                        longestSubstringStart = str1Index - (newLength - 1);
+                    }
+                } else {
+                    newLength = 0;
+                }
+                currentRow[str1Index] = newLength;
+            }
+            int[] temp = currentRow;
+            currentRow = lastRow;
+            lastRow = temp;
+        }
+        return str1.substring(longestSubstringStart, longestSubstringStart + longestSubstringLength);
+    }
 
 
 
