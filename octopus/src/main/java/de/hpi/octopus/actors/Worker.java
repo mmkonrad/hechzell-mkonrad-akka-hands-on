@@ -21,6 +21,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class Worker extends AbstractActor {
 
@@ -98,6 +99,27 @@ public class Worker extends AbstractActor {
         }
     }
 
+    public static class HashSubTaskMessage implements Serializable {
+
+        private static final long serialVersionUID = 4926542426875360288L;
+        private Map<String, String> partners;
+        private Map<String, Integer> prefixes;
+        private int start, end;
+
+        public HashSubTaskMessage(Map<String, String> partners, Map<String, Integer> prefixes, int start, int end) {
+            this.partners = partners;
+            this.prefixes = prefixes;
+            this.start = start;
+            this.end = end;
+        }
+        /**
+         * For serialization/deserialization only.
+         */
+        @SuppressWarnings("unused")
+        private HashSubTaskMessage() {
+        }
+    }
+
 
     @Data @AllArgsConstructor @SuppressWarnings("unused")
     public static class WorkMessage implements Serializable {
@@ -139,6 +161,7 @@ public class Worker extends AbstractActor {
                 .match(MemberUp.class, this::handle)
                 .match(SecretsSubTaskMessage.class, this::handle)
                 .match(SequenceSubTaskMessage.class, this::handle)
+                .match(HashSubTaskMessage.class, this::handle)
                 .match(LinearSubTaskMessage.class, this::handle)
                 .match(WorkMessage.class, this::handle)
                 .matchAny(object -> this.log.info("Received unknown message: \"{}\"", object.toString()))
@@ -217,6 +240,35 @@ public class Worker extends AbstractActor {
             cleartext = new HashMap<String, String>();
             cleartext.put(id, maxSubstringPartner);
             this.sender().tell(new Master.SequenceRevealedMessage(cleartext), this.self());
+        }
+    }
+    private void handle(HashSubTaskMessage message) {
+        int start = message.start;
+        int end = message.end;
+
+        System.out.println("My HashRange: " + start + "-" + end);
+
+        Map<String, String> partners = message.partners;
+        Map<String, Integer> prefixes = message.prefixes;
+        String hash = "";
+        Random rand = new Random();
+
+        for (int i = start; i <= end; i++) {
+            int prefix = prefixes.get(Integer.toString(i));
+            int partner = Integer.parseInt(partners.get(Integer.toString(i)));
+            while (1==1) {
+                int nonce = rand.nextInt();
+                hash = this.hash(partner + nonce);
+                if(prefix == -1 && hash.substring(0, 5).equals("00000")){
+                    break;
+                }
+                else if(prefix == 1 && hash.substring(0, 5).equals("11111")){
+                    break;
+                }
+            }
+            Map<String, String> cleartext = new HashMap<String, String>();
+            cleartext.put(Integer.toString(i), hash);
+            this.sender().tell(new Master.HashRevealedMessage(cleartext), this.self());
         }
     }
 

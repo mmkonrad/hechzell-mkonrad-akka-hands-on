@@ -102,15 +102,20 @@ public class OctopusMaster extends OctopusSystem {
                     solvedSecrets = (Map) Await.result(secretsFuture, timeout.duration());
                     System.out.println(solvedSecrets);
 
-//                    final Future<Object> sequenceFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.SequenceTaskMessage(sequenceMap), timeout);
-//                    final Map solvedSequences;
-//                    solvedSequences = (Map) Await.result(sequenceFuture, timeout.duration());
-//                    System.out.println(solvedSequences);
+                    final Future<Object> sequenceFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.SequenceTaskMessage(sequenceMap), timeout);
+                    final Map solvedSequences;
+                    solvedSequences = (Map) Await.result(sequenceFuture, timeout.duration());
+                    System.out.println(solvedSequences);
 
                     final Future<Object> linearFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.LinearTaskMessage(solvedSecrets), timeout);
                     final Map solvedLinear;
                     solvedLinear = (Map) Await.result(linearFuture, timeout.duration());
                     System.out.println(solvedLinear);
+
+                    final Future<Object> hashFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.HashTaskMessage(solvedSequences, solvedLinear), timeout);
+                    final Map solvedHash;
+                    solvedHash = (Map) Await.result(hashFuture, timeout.duration());
+                    System.out.println(solvedHash);
 
 
 

@@ -54,6 +54,8 @@ public class Master extends AbstractActor {
 
     Map<String, Integer> crackedPasswords = new HashMap<String, Integer>();
     Map<String, String> sequences = new HashMap<String, String>();
+    Map<String, String> hashes = new HashMap<String, String>();
+    boolean solvedPrefixes = false;
 
     ////////////////////
     // Actor messages //
@@ -115,6 +117,19 @@ public class Master extends AbstractActor {
         private Map<String, Integer> Map = new HashMap<String, Integer>();
     }
 
+    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    public static class HashTaskMessage implements Serializable {
+        private static final long serialVersionUID = -6823011111281387872L;
+        private Map<String, String> Seq = new HashMap<String, String>(42);
+        private Map<String, Integer> Lin = new HashMap<String, Integer>(42);
+    }
+
+    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    public static class HashRevealedMessage implements Serializable {
+        private static final long serialVersionUID = -6823011111281387872L;
+        private Map<String, String> Map = new HashMap<String, String>();
+    }
+
     /////////////////
     // Actor State //
     /////////////////
@@ -141,6 +156,8 @@ public class Master extends AbstractActor {
                 .match(SequenceRevealedMessage.class, this::handle)
                 .match(LinearTaskMessage.class, this::handle)
                 .match(LinearRevealedMessage.class, this::handle)
+                .match(HashTaskMessage.class, this::handle)
+                .match(HashRevealedMessage.class, this::handle)
                 .match(Terminated.class, this::handle)
                 .match(TaskMessage.class, this::handle)
                 .match(CompletionMessage.class, this::handle)
@@ -209,7 +226,7 @@ public class Master extends AbstractActor {
         Map<String, Integer> passwords = message.Map;
 
         for (int i = 0; i < this.idleWorkers.size(); i++) {
-            long currentStartNumber = (i * chunkSize) + 1;
+            long currentStartNumber = (i * chunkSize);
             long currentEndNumber = currentStartNumber + chunkSize - 1;
             // Handle any remainder if this is the last worker
             if (i == this.idleWorkers.size() - 1)
@@ -221,9 +238,39 @@ public class Master extends AbstractActor {
 
     private void handle(LinearRevealedMessage message) {
 //        System.out.println(message.Map);
-        this.sender.tell(message.Map, this.sender);
+        if(! this.solvedPrefixes){
+            this.solvedPrefixes = true;
+            this.sender.tell(message.Map, this.sender);
+        }
     }
 
+    private void handle(HashTaskMessage message) throws InterruptedException {
+        System.out.println("Start hash generation");
+        this.sender = getSender();
+        final int chunkSize = 42 / this.workerRouter.routees().size();
+        Map<String, String> partners = message.Seq;
+        Map<String, Integer> prefixes = message.Lin;
+
+        for (int i = 0; i < this.idleWorkers.size(); i++) {
+            int currentStartNumber = (i * chunkSize) + 1;
+            int currentEndNumber = currentStartNumber + chunkSize - 1;
+            // Handle any remainder if this is the last worker
+            if (i == this.idleWorkers.size() - 1)
+                currentEndNumber = 42;
+//            System.out.println("start: " + currentStartNumber + " end: " + currentEndNumber);
+            this.workerRouter.route(new Worker.HashSubTaskMessage(partners, prefixes, currentStartNumber, currentEndNumber), this.self());
+        }
+    }
+
+    private void handle(HashRevealedMessage message) {
+//        System.out.println("id: " + message.Map.keySet() + " seq: " + message.Map.values());
+        Map.Entry<String,String> entry = message.Map.entrySet().iterator().next();
+        this.hashes.put(entry.getKey(), entry.getValue());
+//        System.out.println(this.sequences.size());
+        if(this.hashes.size() >= 42){
+            this.sender.tell(this.hashes, this.sender);
+        }
+    }
 
 
 
