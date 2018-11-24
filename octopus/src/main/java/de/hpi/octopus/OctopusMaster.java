@@ -1,18 +1,19 @@
 package de.hpi.octopus;
 
-import akka.actor.ActorIdentity;
 import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 import com.typesafe.config.Config;
 import de.hpi.octopus.actors.Master;
+import de.hpi.octopus.actors.Reaper;
 import de.hpi.octopus.actors.Worker;
 import de.hpi.octopus.actors.listeners.ClusterListener;
+import de.hpi.octopus.messages.ShutdownMessage;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class OctopusMaster extends OctopusSystem {
 	
@@ -43,6 +45,11 @@ public class OctopusMaster extends OctopusSystem {
 			public void run() {
 				system.actorOf(ClusterListener.props(), ClusterListener.DEFAULT_NAME);
 				system.actorOf(Master.props(), Master.DEFAULT_NAME);
+
+
+                // Create the Reaper.
+                system.actorOf(Reaper.props(), Reaper.DEFAULT_NAME);
+
 
 				for (int i = 0; i < workers; i++)
 					system.actorOf(Worker.props(), Worker.DEFAULT_NAME + i);
@@ -118,6 +125,8 @@ public class OctopusMaster extends OctopusSystem {
                     System.out.println(solvedHash);
 
 
+                    system.actorSelection("/user/" + Master.DEFAULT_NAME).tell(new ShutdownMessage(), ActorRef.noSender());
+
 
 //                    int sum = 0;
 //                    for(int i = 1; i <=42; i++){
@@ -132,19 +141,11 @@ public class OctopusMaster extends OctopusSystem {
                     e.printStackTrace();
                 }
 
-
-                /**
-                 * try ask pattern
-
-                Timeout timeout = new Timeout(100, TimeUnit.MILLISECONDS);
-                ActorSelection actorSelection = system.actorSelection("/user/" + Master.DEFAULT_NAME.toString());
-                Future<Object> future = Patterns.ask(actorSelection, new Master.HashesToCrackMessage(secretsMap), timeout);
-                ActorIdentity reply = (ActorIdentity) Await.result(future, timeout.duration());
-                **/
+                // Await termination: The termination should be issued by the reaper
+                OctopusMaster.awaitTermination(system);
 
             }
 		});
-
 
 		/**
 		final Scanner scanner = new Scanner(System.in);
@@ -155,12 +156,15 @@ public class OctopusMaster extends OctopusSystem {
 		
 		system.actorSelection("/user/" + Master.DEFAULT_NAME).tell(new Master.TaskMessage(attributes), ActorRef.noSender());
         **/
-
-
-
-
-
-
-
 	}
+
+    public static void awaitTermination(final ActorSystem actorSystem) {
+        try {
+            Await.ready(actorSystem.whenTerminated(), Duration.Inf());
+        } catch (TimeoutException | InterruptedException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        System.out.println("ActorSystem terminated!");
+    }
 }

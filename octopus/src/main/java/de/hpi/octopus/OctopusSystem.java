@@ -29,7 +29,7 @@ public class OctopusSystem {
 		
 		// Create the ActorSystem
 		final ActorSystem system = ActorSystem.create(actorSystemName, config);
-		
+
 		// Register a callback that ends the program when the ActorSystem terminates
 		system.registerOnTermination(new Runnable() {
 			@Override

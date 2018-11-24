@@ -1,6 +1,7 @@
 package de.hpi.octopus.actors;
 
 import akka.actor.AbstractActor;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent.CurrentClusterState;
@@ -22,6 +23,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+
+import de.hpi.octopus.messages.ShutdownMessage;
 
 public class Worker extends AbstractActor {
 
@@ -143,10 +146,12 @@ public class Worker extends AbstractActor {
     @Override
     public void preStart() {
         this.cluster.subscribe(this.self(), MemberUp.class);
+        Reaper.watchWithDefaultReaper(this);
     }
 
     @Override
     public void postStop() {
+
         this.cluster.unsubscribe(this.self());
     }
 
@@ -163,7 +168,7 @@ public class Worker extends AbstractActor {
                 .match(SequenceSubTaskMessage.class, this::handle)
                 .match(HashSubTaskMessage.class, this::handle)
                 .match(LinearSubTaskMessage.class, this::handle)
-                .match(WorkMessage.class, this::handle)
+                .match(ShutdownMessage.class, this::handle)
                 .matchAny(object -> this.log.info("Received unknown message: \"{}\"", object.toString()))
                 .build();
     }
@@ -322,6 +327,12 @@ public class Worker extends AbstractActor {
     }
 
 
+
+
+
+
+
+
     private void handle(CurrentClusterState message) {
         message.getMembers().forEach(member -> {
             if (member.status().equals(MemberStatus.up()))
@@ -340,34 +351,19 @@ public class Worker extends AbstractActor {
                     .tell(new RegistrationMessage(), this.self());
     }
 
-    private void handle(WorkMessage message) {
-        long y = 0;
-        for (int i = 0; i < 1000000; i++)
-            if (this.isPrime(i))
-                y = y + i;
-
-        this.log.info("done: " + y);
-
-        this.sender().tell(new CompletionMessage(CompletionMessage.status.EXTENDABLE), this.self());
+    private void handle(ShutdownMessage message) {
+        // Stop self and all child actors by sending a poison pill
+        System.out.println("Worker: " + this.toString() + " received Shutdown");
+        this.getSelf().tell(PoisonPill.getInstance(), this.getSelf());
     }
 
-    private boolean isPrime(long n) {
 
-        // Check for the most basic primes
-        if (n == 1 || n == 2 || n == 3)
-            return true;
 
-        // Check if n is an even number
-        if (n % 2 == 0)
-            return false;
 
-        // Check the odds
-        for (long i = 3; i * i <= n; i += 2)
-            if (n % i == 0)
-                return false;
 
-        return true;
-    }
+
+
+
 
 
 
@@ -435,5 +431,36 @@ public class Worker extends AbstractActor {
 
 
 
+
+    /**
+     private void handle(WorkMessage message) {
+     long y = 0;
+     for (int i = 0; i < 1000000; i++)
+     if (this.isPrime(i))
+     y = y + i;
+
+     this.log.info("done: " + y);
+
+     this.sender().tell(new CompletionMessage(CompletionMessage.status.EXTENDABLE), this.self());
+     }
+
+     private boolean isPrime(long n) {
+
+     // Check for the most basic primes
+     if (n == 1 || n == 2 || n == 3)
+     return true;
+
+     // Check if n is an even number
+     if (n % 2 == 0)
+     return false;
+
+     // Check the odds
+     for (long i = 3; i * i <= n; i += 2)
+     if (n % i == 0)
+     return false;
+
+     return true;
+     }
+     **/
 
 }

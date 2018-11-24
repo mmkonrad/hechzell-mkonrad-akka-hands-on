@@ -1,9 +1,6 @@
 package de.hpi.octopus.actors;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.Terminated;
+import akka.actor.*;
 import akka.cluster.Cluster;
 import akka.cluster.metrics.AdaptiveLoadBalancingPool;
 import akka.cluster.metrics.SystemLoadAverageMetricsSelector;
@@ -22,6 +19,8 @@ import scala.Int;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import de.hpi.octopus.messages.ShutdownMessage;
 
 public class Master extends AbstractActor {
 
@@ -91,6 +90,7 @@ public class Master extends AbstractActor {
     public static class SecretRevealedMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, Integer> Map = new HashMap<String, Integer>();
+        public SecretRevealedMessage() {        }
     }
 
     @Data @AllArgsConstructor @SuppressWarnings("unused")
@@ -103,6 +103,7 @@ public class Master extends AbstractActor {
     public static class SequenceRevealedMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, String> Map = new HashMap<String, String>();
+        public SequenceRevealedMessage() {}
     }
 
     @Data @AllArgsConstructor @SuppressWarnings("unused")
@@ -115,6 +116,7 @@ public class Master extends AbstractActor {
     public static class LinearRevealedMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, Integer> Map = new HashMap<String, Integer>();
+        public LinearRevealedMessage() {}
     }
 
     @Data @AllArgsConstructor @SuppressWarnings("unused")
@@ -128,6 +130,7 @@ public class Master extends AbstractActor {
     public static class HashRevealedMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, String> Map = new HashMap<String, String>();
+        public HashRevealedMessage() {}
     }
 
     /////////////////
@@ -158,9 +161,8 @@ public class Master extends AbstractActor {
                 .match(LinearRevealedMessage.class, this::handle)
                 .match(HashTaskMessage.class, this::handle)
                 .match(HashRevealedMessage.class, this::handle)
+                .match(ShutdownMessage.class, this::handle)
                 .match(Terminated.class, this::handle)
-                .match(TaskMessage.class, this::handle)
-                .match(CompletionMessage.class, this::handle)
                 .matchAny(object -> this.log.info("Received unknown message: \"{}\"", object.toString()))
                 .build();
     }
@@ -272,37 +274,85 @@ public class Master extends AbstractActor {
         }
     }
 
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
+
+        // Register at this actor system's reaper
+        Reaper.watchWithDefaultReaper(this);
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        super.postStop();
+        // If the master has stopped, it can also stop the listener
+        //this.listener.tell(PoisonPill.getInstance(), this.getSelf());
+        // Log the stop event
+        //this.log().info("Stopped {}.", this.getSelf());
+    }
 
 
 
 
+    private void handle(ShutdownMessage message) {
+
+        // Stop receiving new queries
+        //this.isAcceptingRequests = false;
+
+        // Tell the listener to stop
+        //this.listener.tell(new ShutdownMessage(), this.getSelf());
 
 
+        for(ActorRef worker: idleWorkers){
+            System.out.println("Sending Shutdown to worker: " + worker.toString());
+            worker.tell(new ShutdownMessage(), ActorRef.noSender());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Stop self and all child actors by sending a poison pill
+        this.getSelf().tell(PoisonPill.getInstance(), this.getSelf());
+    }
 
 
     private void handle(RegistrationMessage message) {
         this.context().watch(this.sender());
-        this.assign(this.sender());
+        this.idleWorkers.add(this.sender());
 
+
+        //this.assign(this.sender());
         // add worker to router
         this.workerRouter = this.workerRouter.addRoutee(this.sender());
 
+        System.out.println("#Registered Workers:" + this.idleWorkers.size());
+        System.out.println("#Routable Workers:" + this.workerRouter.routees().size());
+
+
         this.log.info("Registered {}", this.sender());
-        //System.out.println(this.workerRouter.routees().size());
     }
 
     private void handle(Terminated message) {
         this.context().unwatch(message.getActor());
-
-        if (!this.idleWorkers.remove(message.getActor())) {
-            WorkMessage work = this.busyWorkers.remove(message.getActor());
-            if (work != null) {
-                this.assign(work);
-            }
-        }
-        this.log.info("Unregistered {}", message.getActor());
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /**
     private void handle(TaskMessage message) {
         if (this.task != null)
             this.log.error("The master actor can process only one task in its current implementation!");
@@ -379,4 +429,5 @@ public class Master extends AbstractActor {
             this.assign(new WorkMessage(x, yNew));
         }
     }
+    **/
 }
