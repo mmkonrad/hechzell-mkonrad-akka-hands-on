@@ -103,27 +103,37 @@ public class OctopusMaster extends OctopusSystem {
                 try {
                     Thread.sleep(5000);
                     final Timeout timeout = new Timeout(1000, TimeUnit.SECONDS);
-
+                    long t1 = System.currentTimeMillis();
                     final Future<Object> secretsFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.SecretsTaskMessage(secretsMap), timeout);
                     final Map solvedSecrets;
                     solvedSecrets = (Map) Await.result(secretsFuture, timeout.duration());
+                    long t2 = System.currentTimeMillis();
+                    System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedSecrets);
 
+                    t1 = System.currentTimeMillis();
                     final Future<Object> sequenceFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.SequenceTaskMessage(sequenceMap), timeout);
                     final Map solvedSequences;
                     solvedSequences = (Map) Await.result(sequenceFuture, timeout.duration());
+                    t2 = System.currentTimeMillis();
+                    System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedSequences);
 
+                    t1 = System.currentTimeMillis();
                     final Future<Object> linearFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.LinearTaskMessage(solvedSecrets), timeout);
                     final Map solvedLinear;
                     solvedLinear = (Map) Await.result(linearFuture, timeout.duration());
+                    t2 = System.currentTimeMillis();
+                    System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedLinear);
 
+                    t1 = System.currentTimeMillis();
                     final Future<Object> hashFuture = Patterns.ask(system.actorSelection("/user/" + Master.DEFAULT_NAME), new Master.HashTaskMessage(solvedSequences, solvedLinear), timeout);
                     final Map solvedHash;
                     solvedHash = (Map) Await.result(hashFuture, timeout.duration());
+                    t2 = System.currentTimeMillis();
+                    System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedHash);
-
 
                     system.actorSelection("/user/" + Master.DEFAULT_NAME).tell(new ShutdownMessage(), ActorRef.noSender());
 
