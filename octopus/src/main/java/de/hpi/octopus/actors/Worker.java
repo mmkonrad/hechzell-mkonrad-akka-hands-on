@@ -192,15 +192,6 @@ public class Worker extends AbstractActor {
                 String key = entry.getKey();
                 String value = entry.getValue();
 
-//                System.out.println("key: " + key + " value: " + value + " i: " + i + " hash: " + hash);
-
-                /**
-                 try {
-                 Thread.sleep(100);
-                 } catch (InterruptedException e) {
-                 }
-                 **/
-
                 if (hash.equals(value)) {
 //                    System.out.println("Match!");
                     cleartext = new HashMap<String, Integer>();
@@ -326,13 +317,6 @@ public class Worker extends AbstractActor {
         return prefixes;
     }
 
-
-
-
-
-
-
-
     private void handle(CurrentClusterState message) {
         message.getMembers().forEach(member -> {
             if (member.status().equals(MemberStatus.up()))
@@ -356,18 +340,6 @@ public class Worker extends AbstractActor {
         System.out.println("Worker: " + this.toString() + " received Shutdown");
         this.getSelf().tell(PoisonPill.getInstance(), this.getSelf());
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     private String hash(int number) {
         try {
@@ -422,45 +394,4 @@ public class Worker extends AbstractActor {
         }
         return str1.substring(longestSubstringStart, longestSubstringStart + longestSubstringLength);
     }
-
-
-
-
-
-
-
-
-
-
-    /**
-     private void handle(WorkMessage message) {
-     long y = 0;
-     for (int i = 0; i < 1000000; i++)
-     if (this.isPrime(i))
-     y = y + i;
-
-     this.log.info("done: " + y);
-
-     this.sender().tell(new CompletionMessage(CompletionMessage.status.EXTENDABLE), this.self());
-     }
-
-     private boolean isPrime(long n) {
-
-     // Check for the most basic primes
-     if (n == 1 || n == 2 || n == 3)
-     return true;
-
-     // Check if n is an even number
-     if (n % 2 == 0)
-     return false;
-
-     // Check the odds
-     for (long i = 3; i * i <= n; i += 2)
-     if (n % i == 0)
-     return false;
-
-     return true;
-     }
-     **/
-
 }

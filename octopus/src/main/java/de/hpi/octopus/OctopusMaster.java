@@ -92,20 +92,6 @@ public class OctopusMaster extends OctopusSystem {
                     }
                 }
 
-                /* Here have the data */
-                //System.out.println(names);
-                //System.out.println(secrets);
-                //System.out.println(sequences);
-
-
-                /**
-                for (Map.Entry<String,String> entry : secretsMap.entrySet()) {
-                    String key = entry.getKey();
-                    String value = entry.getValue();
-
-                    System.out.println(key + ": " + value);
-                }
-                **/
 
                 try {
                     Thread.sleep(5000);
@@ -144,16 +130,6 @@ public class OctopusMaster extends OctopusSystem {
 
                     system.actorSelection("/user/" + Master.DEFAULT_NAME).tell(new ShutdownMessage(), ActorRef.noSender());
 
-
-//                    int sum = 0;
-//                    for(int i = 1; i <=42; i++){
-//                        sum += ((int)solvedSecrets.get(Integer.toString(i))) * ((int)solvedLinear.get(Integer.toString(i)));
-//                    }
-//
-//                    System.out.println("Linear Combination sum is " + sum);
-
-
-                    
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -163,16 +139,6 @@ public class OctopusMaster extends OctopusSystem {
 
             }
 		});
-
-		/**
-		final Scanner scanner = new Scanner(System.in);
-		String line = scanner.nextLine();
-		scanner.close();
-		
-		int attributes = Integer.parseInt(line);
-		
-		system.actorSelection("/user/" + Master.DEFAULT_NAME).tell(new Master.TaskMessage(attributes), ActorRef.noSender());
-        **/
 	}
 
     public static void awaitTermination(final ActorSystem actorSystem) {

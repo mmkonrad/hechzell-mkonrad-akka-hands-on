@@ -35,20 +35,6 @@ public class Master extends AbstractActor {
         return Props.create(Master.class);
     }
 
-    /**
-    int maxWorkersPerNode = 4;
-    int maxWorkersPerCluster = 1000;
-    boolean allowLocalWorkers = true;
-
-    Set<String> roles = new HashSet<>(Arrays.asList("slave"));
-
-    ActorRef router = this.getContext().system().actorOf(
-        new ClusterRouterPool(
-                new AdaptiveLoadBalancingPool(SystemLoadAverageMetricsSelector.getInstance(), 0),
-                new ClusterRouterPoolSettings(maxWorkersPerCluster, maxWorkersPerNode, allowLocalWorkers, roles)
-        ).props(Props.create(Worker.class)), "router");
-    **/
-
     Router workerRouter = new Router(new RoundRobinRoutingLogic());
 
     Map<String, Integer> crackedPasswords = new HashMap<String, Integer>();
@@ -60,77 +46,113 @@ public class Master extends AbstractActor {
     // Actor messages //
     ////////////////////
 
-    @Data @AllArgsConstructor
+    @Data
+    @AllArgsConstructor
     public static class RegistrationMessage implements Serializable {
         private static final long serialVersionUID = 4545299661052078209L;
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class TaskMessage implements Serializable {
         private static final long serialVersionUID = -8330958742629706627L;
-        private TaskMessage() {}
+
+        private TaskMessage() {
+        }
+
         private int attributes;
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class CompletionMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
+
         public enum status {MINIMAL, EXTENDABLE, FALSE, FAILED}
-        private CompletionMessage() {}
+
+        private CompletionMessage() {
+        }
+
         private status result;
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class SecretsTaskMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, String> Map = new HashMap<String, String>(42);
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class SecretRevealedMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, Integer> Map = new HashMap<String, Integer>();
-        public SecretRevealedMessage() {        }
+
+        public SecretRevealedMessage() {
+        }
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class SequenceTaskMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, String> Map = new HashMap<String, String>(42);
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class SequenceRevealedMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, String> Map = new HashMap<String, String>();
-        public SequenceRevealedMessage() {}
+
+        public SequenceRevealedMessage() {
+        }
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class LinearTaskMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, Integer> Map = new HashMap<String, Integer>(42);
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class LinearRevealedMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, Integer> Map = new HashMap<String, Integer>();
-        public LinearRevealedMessage() {}
+
+        public LinearRevealedMessage() {
+        }
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class HashTaskMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, String> Seq = new HashMap<String, String>(42);
         private Map<String, Integer> Lin = new HashMap<String, Integer>(42);
     }
 
-    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    @Data
+    @AllArgsConstructor
+    @SuppressWarnings("unused")
     public static class HashRevealedMessage implements Serializable {
         private static final long serialVersionUID = -6823011111281387872L;
         private Map<String, String> Map = new HashMap<String, String>();
-        public HashRevealedMessage() {}
+
+        public HashRevealedMessage() {
+        }
     }
 
     /////////////////
@@ -187,10 +209,10 @@ public class Master extends AbstractActor {
 
     private void handle(SecretRevealedMessage message) {
 //        System.out.println("id: " + message.Map.keySet() + " cleartext: " + message.Map.values());
-        Map.Entry<String,Integer> entry = message.Map.entrySet().iterator().next();
+        Map.Entry<String, Integer> entry = message.Map.entrySet().iterator().next();
         this.crackedPasswords.put(entry.getKey(), entry.getValue());
 //        System.out.println(this.crackedPasswords.size());
-        if(this.crackedPasswords.size() >= 42){
+        if (this.crackedPasswords.size() >= 42) {
             this.sender.tell(this.crackedPasswords, this.sender);
         }
     }
@@ -213,10 +235,10 @@ public class Master extends AbstractActor {
 
     private void handle(SequenceRevealedMessage message) {
 //        System.out.println("id: " + message.Map.keySet() + " seq: " + message.Map.values());
-        Map.Entry<String,String> entry = message.Map.entrySet().iterator().next();
+        Map.Entry<String, String> entry = message.Map.entrySet().iterator().next();
         this.sequences.put(entry.getKey(), entry.getValue());
 //        System.out.println(this.sequences.size());
-        if(this.sequences.size() >= 42){
+        if (this.sequences.size() >= 42) {
             this.sender.tell(this.sequences, this.sender);
         }
     }
@@ -240,7 +262,7 @@ public class Master extends AbstractActor {
 
     private void handle(LinearRevealedMessage message) {
 //        System.out.println(message.Map);
-        if(! this.solvedPrefixes){
+        if (!this.solvedPrefixes) {
             this.solvedPrefixes = true;
             this.sender.tell(message.Map, this.sender);
         }
@@ -266,10 +288,10 @@ public class Master extends AbstractActor {
 
     private void handle(HashRevealedMessage message) {
 //        System.out.println("id: " + message.Map.keySet() + " seq: " + message.Map.values());
-        Map.Entry<String,String> entry = message.Map.entrySet().iterator().next();
+        Map.Entry<String, String> entry = message.Map.entrySet().iterator().next();
         this.hashes.put(entry.getKey(), entry.getValue());
 //        System.out.println(this.sequences.size());
-        if(this.hashes.size() >= 42){
+        if (this.hashes.size() >= 42) {
             this.sender.tell(this.hashes, this.sender);
         }
     }
@@ -285,25 +307,11 @@ public class Master extends AbstractActor {
     @Override
     public void postStop() throws Exception {
         super.postStop();
-        // If the master has stopped, it can also stop the listener
-        //this.listener.tell(PoisonPill.getInstance(), this.getSelf());
-        // Log the stop event
-        //this.log().info("Stopped {}.", this.getSelf());
     }
 
 
-
-
     private void handle(ShutdownMessage message) {
-
-        // Stop receiving new queries
-        //this.isAcceptingRequests = false;
-
-        // Tell the listener to stop
-        //this.listener.tell(new ShutdownMessage(), this.getSelf());
-
-
-        for(ActorRef worker: idleWorkers){
+        for (ActorRef worker : idleWorkers) {
             System.out.println("Sending Shutdown to worker: " + worker.toString());
             worker.tell(new ShutdownMessage(), ActorRef.noSender());
 
@@ -338,96 +346,4 @@ public class Master extends AbstractActor {
     private void handle(Terminated message) {
         this.context().unwatch(message.getActor());
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /**
-    private void handle(TaskMessage message) {
-        if (this.task != null)
-            this.log.error("The master actor can process only one task in its current implementation!");
-
-        this.task = message;
-        this.assign(new WorkMessage(new int[0], new int[0]));
-    }
-
-    private void handle(CompletionMessage message) {
-        ActorRef worker = this.sender();
-        WorkMessage work = this.busyWorkers.remove(worker);
-
-        this.log.info("Completed: [{},{}]", Arrays.toString(work.getX()), Arrays.toString(work.getY()));
-
-        switch (message.getResult()) {
-            case MINIMAL:
-                this.report(work);
-                break;
-            case EXTENDABLE:
-                this.split(work);
-                break;
-            case FALSE:
-                // Ignore
-                break;
-            case FAILED:
-                this.assign(work);
-                break;
-        }
-
-        this.assign(worker);
-    }
-
-    private void assign(WorkMessage work) {
-        ActorRef worker = this.idleWorkers.poll();
-
-        if (worker == null) {
-            this.unassignedWork.add(work);
-            return;
-        }
-
-        this.busyWorkers.put(worker, work);
-        worker.tell(work, this.self());
-    }
-
-    private void assign(ActorRef worker) {
-        WorkMessage work = this.unassignedWork.poll();
-
-        if (work == null) {
-            this.idleWorkers.add(worker);
-            return;
-        }
-
-        this.busyWorkers.put(worker, work);
-        worker.tell(work, this.self());
-    }
-
-    private void report(WorkMessage work) {
-        this.log.info("UCC: {}", Arrays.toString(work.getX()));
-    }
-
-    private void split(WorkMessage work) {
-        int[] x = work.getX();
-        int[] y = work.getY();
-
-        int next = x.length + y.length;
-
-        if (next < this.task.getAttributes() - 1) {
-            int[] xNew = Arrays.copyOf(x, x.length + 1);
-            xNew[x.length] = next;
-            this.assign(new WorkMessage(xNew, y));
-
-            int[] yNew = Arrays.copyOf(y, y.length + 1);
-            yNew[y.length] = next;
-            this.assign(new WorkMessage(x, yNew));
-        }
-    }
-    **/
 }
