@@ -6,6 +6,7 @@ import akka.cluster.Cluster;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import de.hpi.octopus.actors.Master;
 import de.hpi.octopus.actors.Reaper;
 import de.hpi.octopus.actors.Worker;
@@ -31,14 +32,20 @@ public class OctopusMaster extends OctopusSystem {
 	
 	public static final String MASTER_ROLE = "master";
 
-	public static void start(String actorSystemName, int workers, String host, int port, String inputFile) {
+	public static void start(String actorSystemName, int workers, String host, int port, String inputFile, int slaves) {
 
-		final Config config = createConfiguration(actorSystemName, MASTER_ROLE, host, port, host, port);
-		final ActorSystem system = createSystem(actorSystemName, config);
+	    final Config config = createConfiguration(actorSystemName, MASTER_ROLE, host, port, host, port);
 
+        // make a Config with just your special setting
+        Config myConfig = ConfigFactory.parseString("akka.cluster.role.slave.min-nr-of-members = " + slaves + "\n");
 
+        // override regular stack with myConfig
+        Config combined = myConfig.withFallback(config);
 
+        // put the result in between the overrides (system props) and defaults again
+        Config complete = ConfigFactory.load(combined);
 
+		final ActorSystem system = createSystem(actorSystemName, complete);
 
 		Cluster.get(system).registerOnMemberUp(new Runnable() {
 			@Override

@@ -4,6 +4,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;
+import com.typesafe.config.ConfigFactory;
 import de.hpi.octopus.actors.Reaper;
 import de.hpi.octopus.actors.Worker;
 import de.hpi.octopus.actors.listeners.MetricsListener;
@@ -19,7 +20,7 @@ public class OctopusSlave extends OctopusSystem {
 	public static void start(String actorSystemName, int workers, String host, int port, String masterhost, int masterport) {
 		
 		final Config config = createConfiguration(actorSystemName, SLAVE_ROLE, host, port, masterhost, masterport);
-		
+
 		final ActorSystem system = createSystem(actorSystemName, config);
 
 		Cluster.get(system).registerOnMemberUp(new Runnable() {
