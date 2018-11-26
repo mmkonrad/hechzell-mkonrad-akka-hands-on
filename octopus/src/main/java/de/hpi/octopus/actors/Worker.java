@@ -132,12 +132,18 @@ public class Worker extends AbstractActor {
         private int[] y;
     }
 
+    @Data @AllArgsConstructor @SuppressWarnings("unused")
+    public static class AbortMessage implements Serializable {
+        private static final long serialVersionUID = -7643194361868862395L;
+    }
+
     /////////////////
     // Actor State //
     /////////////////
 
     private final LoggingAdapter log = Logging.getLogger(this.context().system(), this);
     private final Cluster cluster = Cluster.get(this.context().system());
+    private boolean foundALinearSolution = false;
 
     /////////////////////
     // Actor Lifecycle //
@@ -168,6 +174,7 @@ public class Worker extends AbstractActor {
                 .match(SequenceSubTaskMessage.class, this::handle)
                 .match(HashSubTaskMessage.class, this::handle)
                 .match(LinearSubTaskMessage.class, this::handle)
+                .match(AbortMessage.class, this::handle)
                 .match(ShutdownMessage.class, this::handle)
                 .matchAny(object -> this.log.info("Received unknown message: \"{}\"", object.toString()))
                 .build();
@@ -268,6 +275,10 @@ public class Worker extends AbstractActor {
         }
     }
 
+    private void handle(AbortMessage message) {
+        this.foundALinearSolution = true;
+    }
+
 
     private void handle(LinearSubTaskMessage message) {
         long start = message.start;
@@ -288,7 +299,7 @@ public class Worker extends AbstractActor {
                 sum += entry.getValue() * prefixes[idx];
                 idx ++;
             }
-            if (sum == 0) {
+            if (sum == 0 || this.foundALinearSolution) {
                 idx = 0;
                 for (Map.Entry<String, Integer> entry : passwords.entrySet()) {
 //                String key = entry.getKey();

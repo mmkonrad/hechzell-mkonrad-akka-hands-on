@@ -9,11 +9,13 @@ import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.routing.RoundRobinRoutingLogic;
+import akka.routing.Routee;
 import akka.routing.Router;
 import akka.util.Timeout;
 import de.hpi.octopus.actors.Worker.WorkMessage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import scala.Function1;
 import scala.Int;
 
 import java.io.Serializable;
@@ -264,6 +266,11 @@ public class Master extends AbstractActor {
 //        System.out.println(message.Map);
         if (!this.solvedPrefixes) {
             this.solvedPrefixes = true;
+
+            for (ActorRef worker: this.idleWorkers){
+                worker.tell(new Worker.AbortMessage(), this.self());
+            }
+
             this.sender.tell(message.Map, this.sender);
         }
     }
