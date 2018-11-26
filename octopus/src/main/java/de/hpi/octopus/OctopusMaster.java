@@ -101,7 +101,8 @@ public class OctopusMaster extends OctopusSystem {
                     final Map solvedSecrets;
                     solvedSecrets = (Map) Await.result(secretsFuture, timeout.duration());
                     long t2 = System.currentTimeMillis();
-                    System.out.println("Time: " + (t2-t1));
+                    long secretsTime = t2 - t1;
+                    //System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedSecrets);
 
                     t1 = System.currentTimeMillis();
@@ -109,7 +110,8 @@ public class OctopusMaster extends OctopusSystem {
                     final Map solvedSequences;
                     solvedSequences = (Map) Await.result(sequenceFuture, timeout.duration());
                     t2 = System.currentTimeMillis();
-                    System.out.println("Time: " + (t2-t1));
+                    long sequenceTime = t2 - t1;
+                    //System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedSequences);
 
                     t1 = System.currentTimeMillis();
@@ -117,7 +119,8 @@ public class OctopusMaster extends OctopusSystem {
                     final Map solvedLinear;
                     solvedLinear = (Map) Await.result(linearFuture, timeout.duration());
                     t2 = System.currentTimeMillis();
-                    System.out.println("Time: " + (t2-t1));
+                    long linearTime = t2 - t1;
+                    //System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedLinear);
 
                     t1 = System.currentTimeMillis();
@@ -125,8 +128,20 @@ public class OctopusMaster extends OctopusSystem {
                     final Map solvedHash;
                     solvedHash = (Map) Await.result(hashFuture, timeout.duration());
                     t2 = System.currentTimeMillis();
-                    System.out.println("Time: " + (t2-t1));
+                    long hashTime = t2 - t1;
+                    //System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedHash);
+
+                    System.out.println("#########################");
+                    System.out.println("Password Cracking: " + (double) secretsTime/1000 + " sec");
+                    System.out.println("Gene Analysis: " + (double) sequenceTime/1000 + " sec");
+                    System.out.println("Linear Combination: " + (double) linearTime/1000 + " sec");
+                    System.out.println("Hash Mining: " + (double) hashTime/1000 + " sec");
+
+
+
+                    Thread.sleep(10000);
+
 
                     system.actorSelection("/user/" + Master.DEFAULT_NAME).tell(new ShutdownMessage(), ActorRef.noSender());
 
