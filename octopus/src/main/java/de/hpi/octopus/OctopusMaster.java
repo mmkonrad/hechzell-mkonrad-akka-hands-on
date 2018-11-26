@@ -101,7 +101,7 @@ public class OctopusMaster extends OctopusSystem {
                     final Map solvedSecrets;
                     solvedSecrets = (Map) Await.result(secretsFuture, timeout.duration());
                     long t2 = System.currentTimeMillis();
-                    long secretsTime = t2 - t1;
+                    double secretsTime = (t2 - t1) / 1000;
                     //System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedSecrets);
 
@@ -110,7 +110,7 @@ public class OctopusMaster extends OctopusSystem {
                     final Map solvedSequences;
                     solvedSequences = (Map) Await.result(sequenceFuture, timeout.duration());
                     t2 = System.currentTimeMillis();
-                    long sequenceTime = t2 - t1;
+                    double sequenceTime = (t2 - t1) / 1000;
                     //System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedSequences);
 
@@ -119,7 +119,7 @@ public class OctopusMaster extends OctopusSystem {
                     final Map solvedLinear;
                     solvedLinear = (Map) Await.result(linearFuture, timeout.duration());
                     t2 = System.currentTimeMillis();
-                    long linearTime = t2 - t1;
+                    double linearTime = (t2 - t1) / 1000;
                     //System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedLinear);
 
@@ -128,17 +128,20 @@ public class OctopusMaster extends OctopusSystem {
                     final Map solvedHash;
                     solvedHash = (Map) Await.result(hashFuture, timeout.duration());
                     t2 = System.currentTimeMillis();
-                    long hashTime = t2 - t1;
+                    double hashTime = (t2 - t1) / 1000;
                     //System.out.println("Time: " + (t2-t1));
                     System.out.println(solvedHash);
 
+
+
                     System.out.println("#########################");
-                    System.out.println("Password Cracking: " + (double) secretsTime/1000 + " sec");
-                    System.out.println("Gene Analysis: " + (double) sequenceTime/1000 + " sec");
-                    System.out.println("Linear Combination: " + (double) linearTime/1000 + " sec");
-                    System.out.println("Hash Mining: " + (double) hashTime/1000 + " sec");
-
-
+                    System.out.println("Password Cracking: " + secretsTime + " sec");
+                    System.out.println("Gene Analysis: " + sequenceTime + " sec");
+                    System.out.println("Linear Combination: " + linearTime + " sec");
+                    System.out.println("Hash Mining: " + hashTime + " sec");
+                    System.out.println("---------------------------");
+                    System.out.println("Overall Time: " + (secretsTime +  sequenceTime + linearTime + hashTime) + " sec");
+                    System.out.println("#########################");
 
                     Thread.sleep(10000);
 
